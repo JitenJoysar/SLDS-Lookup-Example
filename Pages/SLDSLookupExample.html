@@ -1,0 +1,161 @@
+<apex:page showHeader="false"
+           sidebar="false"
+           docType="html-5.0"
+           standardStylesheets="false"
+           applyBodyTag="false"
+           applyHtmlTag="false"
+           standardController="Campaign"
+           extensions="SLDSLookupExampleController">
+    <html ng-app="LookupExample"
+        xmlns="http://www.w3.org/2000/svg"
+        xmlns:xlink="http://www.w3.org/1999/xlink">
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1"/>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+            <!-- Include SLDC CSS -->
+            <apex:stylesheet value="{!URLFOR($Resource.LightningDesignSystem, 'assets/styles/salesforce-lightning-design-system-vf.css')}" />
+            
+            <!-- Additional Style for page container -->
+            <style>
+                body{
+                      margin:3px !important;
+                }
+                .pagecontainer{
+                  padding:50px;
+                }
+            </style>
+
+            <script>
+            
+            // AngularJs
+            var groupEventApp = angular.module('LookupExample', []);
+            groupEventApp.controller('HomeController',['$log','$scope',function($log,$scope){
+            
+            $scope.showContactListSearch = false;
+            
+            // Fetch Contact Object Key 
+            $scope.contactObjectKey = {!ContactObjectKey};
+            $scope.contactName = '';
+            
+            //below function will make Remote Action call to Fetch contacts based on searched text 
+            $scope.searchContacts = function(){
+                
+                $scope.contactList = [];
+                if( $scope.contactName != undefined && $scope.contactName.length > 3){
+                
+                      Visualforce.remoting.Manager.invokeAction(
+                                    '{!$RemoteAction.SLDSLookupExampleController.searchContact}',
+                                    $scope.contactName, 
+                                    function(result, event){
+                                        if (event.status) {
+                                            $scope.showContactListSearch = true;
+                                            $scope.contactList = result;
+                                        } else if (event.type === 'exception') {
+                                            
+                                        } else {
+                                            
+                                        }
+                                        $scope.$apply();
+                                    }, 
+                                    {escape: true}
+                        );
+                           
+                }else{
+                      $scope.showContactListSearch = false;
+                }
+            }
+            
+            // Selected Contact
+            $scope.selectedContact = function(contact){
+                $scope.showContactListSearch = false;
+                $scope.contactName = contact.Name;
+                $scope.contactList = [];
+            }
+            
+            // Below function will be useful for navigating to new layout when create new contact is selected on UI    
+            $scope.openNewContactScreen = function(){
+               if((typeof sforce != 'undefined') && (sforce != null) ){
+                       sforce.one.createRecord('Contact');
+                 }else{
+                       window.open('/'+$scope.contactObjectKey+'/e','_self');
+                 }
+    
+            }    
+            
+            }]);
+            </script>
+        </head>
+        <body ng-controller = "HomeController">
+            <div class="slds">
+                <!-- PAGE HEADER -->
+                <div class="slds-page-header" role="banner">
+                  <div class="slds-media slds-media--center">
+                    <div class="slds-media__figure">
+                      <svg aria-hidden="true" class="slds-icon slds-icon-standard-opportunity">
+                        <use xlink:href="{!URLFOR($Resource.LightningDesignSystem,'assets/icons/action-sprite/svg/symbols.svg#new_event')}"></use>
+                      </svg>
+                    </div>
+                    <div class="slds-media__body">
+                      <h1 class="slds-page-header__title slds-truncate" title="SLDS PICKLIST EXAMPLE">SLDS PICKLIST EXAMPLE</h1>
+                    </div>
+                    
+                  </div>
+                </div>
+                <!-- / PAGE HEADER -->
+                <div class="pagecontainer">
+                    <div class="slds-form--stacked ">
+                        <!-- CONTACT -->
+                        <div class="slds-form-element slds-size--1-of-4">
+                            <div class="slds-lookup" data-select="multi" data-scope="single" data-typeahead="true">
+                                <label class="slds-form-element__label" for="lookupCon">
+                                    <abbr class="slds-required" title="required">*</abbr><span class="slds-badge slds-theme--alert-texture">Contact</span>
+
+                                </label>
+                                <div class="slds-form-element__control slds-input-has-icon slds-input-has-icon--right">
+                                    <svg aria-hidden="true" class="slds-input__icon slds-icon-text-default">
+                                        <use xlink:href="{!URLFOR($Resource.LightningDesignSystem,'assets/icons/utility-sprite/svg/symbols.svg#search')}" ></use>
+                                    </svg>
+                                    <input  id="lookupCon" class="slds-input" type="text" name="contactName" ng-model="contactName" placeholder="Please enter minimum of 4 characters" aria-autocomplete="list" ng-required="true" role="combobox" ng-keyup="searchContacts()" />
+                                </div>
+                                
+                            </div>
+                            <div class="slds-lookup__menu" role="listbox" ng-show="showContactListSearch" >
+                                <div class="slds-lookup__item" >
+                                    <button class="slds-button">
+                                        <svg aria-hidden="true" class="slds-icon slds-icon-text-default slds-icon--small">
+                                            <use xlink:href="{!URLFOR($Resource.LightningDesignSystem,'assets/icons/utility-sprite/svg/symbols.svg#search')}"></use>
+                                        </svg>&quot;{{contactName}}&quot; in Contacts
+
+                                    </button>
+                                </div>
+                                <ul class="slds-lookup__list" role="presentation">
+                                    <li class="slds-lookup__item" ng-repeat="contactName in contactList">
+                                        <a role="option" ng-click="selectedContact(contactName)">
+                                            <svg aria-hidden="true" class="slds-icon slds-icon-standard-account slds-icon--small">
+                                                <use xlink:href="{!URLFOR($Resource.LightningDesignSystem,'assets/icons/utility-sprite/svg/symbols.svg#user')}"></use>
+                                            </svg>{{contactName.Name}}
+
+                                        </a>
+                                    </li>
+                                </ul>
+                                <!-- Code to navigate to new page (Add contact layout) -->
+                                <div class="slds-lookup__item">
+                                    <button class="slds-button" ng-click="openNewContactScreen()">
+                                        <svg aria-hidden="true" class="slds-icon slds-icon-text-default slds-icon--small">
+                                            <use xlink:href="{!URLFOR($Resource.LightningDesignSystem,'assets/icons/utility-sprite/svg/symbols.svg#add')}"></use>
+                                        </svg>Add Contact
+
+                                    </button>
+                                </div>
+                                <!-- / Code to navigate to new page (Add contact layout) -->
+                            </div>
+                        </div>
+                        <!-- / CONTACT -->
+                    </div>              
+                </div>
+            </div>
+            <!-- Include AngularJs -->
+            <apex:includeScript value="{!URLFOR($Resource.AngularResources,'AngularBootStapNew/js/angular.min.js')}"/>
+        </body>
+    </html>
+</apex:page>
